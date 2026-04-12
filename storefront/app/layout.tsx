@@ -64,12 +64,23 @@ export default function RootLayout({
       sampling: { scroll: 150 }
     });
   }
+  function loadScript(url, cb) {
+    var s = document.createElement('script');
+    s.src = url;
+    s.onload = cb;
+    s.onerror = cb;
+    document.head.appendChild(s);
+  }
   function loadAndRecord() {
     if (window.rrweb && window.rrweb.record) { startRecording(); return; }
-    var s = document.createElement('script');
-    s.src = 'https://unpkg.com/@posthog/rrweb-record@0.0.37/dist/rrweb-record.umd.cjs';
-    s.onload = startRecording;
-    document.head.appendChild(s);
+    // Primary CDN, fallback to jsdelivr if unpkg fails
+    // Version MUST match posthog-js dependency on @posthog/rrweb-record
+    loadScript('https://unpkg.com/@posthog/rrweb-record@0.0.37/dist/rrweb-record.umd.cjs', function() {
+      if (window.rrweb && window.rrweb.record) { startRecording(); return; }
+      loadScript('https://cdn.jsdelivr.net/npm/@posthog/rrweb-record@0.0.37/dist/rrweb-record.umd.cjs', function() {
+        startRecording();
+      });
+    });
   }
   window.addEventListener('message', function(e) {
     if (e.data && (e.data.type === 'posthog:start-recording-v2' || e.data.type === 'posthog:start-recording')) loadAndRecord();
